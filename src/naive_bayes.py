@@ -20,10 +20,13 @@ def train_bayes(df: pd.DataFrame, cfg: dict):
 
     params = cfg.get("model_parameters", {})
     paths = cfg.get("paths", {})
-    nb_dir = paths['models'] + "/naive_bayes"
+    nb_model_dir = paths['models'] + "/naive_bayes"
+    nb_metrics_dir = paths['metrics'] + "/naive_bayes"
 
     os.makedirs(paths['models'], exist_ok=True)
-    os.makedirs(nb_dir, exist_ok=True)
+    os.makedirs(paths['metrics'], exist_ok=True)
+    os.makedirs(nb_model_dir, exist_ok=True)
+    os.makedirs(nb_metrics_dir, exist_ok=True)
 
     X = df['Final_Summary'] #create X
     y = df['genre_map'] #create y
@@ -50,9 +53,9 @@ def train_bayes(df: pd.DataFrame, cfg: dict):
 
     y_pred = model.predict(X_test_dtm)
 
-    evaluation_file = nb_dir + "/naive_bayes_evaulation.txt"
-    cm_file = nb_dir + "/naive_bayes_cm.jpg"
-    model_file = nb_dir + "/naive_bayes.pkl"
+    evaluation_file = nb_metrics_dir + "/naive_bayes_evaulation.txt"
+    cm_file = nb_metrics_dir + "/naive_bayes_cm.jpg"
+    model_file = nb_model_dir + "/naive_bayes.pkl"
 
     with open(model_file, "wb") as f:
         pickle.dump(model, f)
