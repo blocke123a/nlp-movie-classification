@@ -1,0 +1,21 @@
+data:
+    kaggle_link: "zulkarnainsaurav/imdb-multimodal-vision-and-nlp-genre-classification"
+
+paths:
+    processed_data: "artifacts/data"
+    models: "artifacts/models"
+    metrics: "artifacts/metrics"
+    artifacts: 'artifacts'
+
+models:
+    naive_bayes: True
+    logistic_regression: False
+    lstm: False
+    transformer: False
+
+model_parameters:
+    test_split: 0.2
+    random_state: 42
+
+files:
+    data_file: "artifacts/data/processed_data.pkl"
