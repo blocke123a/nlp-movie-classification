@@ -1,0 +1,77 @@
+====== Model Evaluation: Logistic Regression ======
+
+=== Model Score ===
+model.score(X_test, y_test)=0.69
+
+
+=== Classification Report ===
+              precision    recall  f1-score   support
+
+           1       0.59      0.64      0.62        45
+           2       0.82      0.82      0.82        60
+           3       0.44      0.38      0.41        40
+           4       0.79      0.82      0.80        55
+
+    accuracy                           0.69       200
+   macro avg       0.66      0.66      0.66       200
+weighted avg       0.68      0.69      0.69       200
+
+
+
+=== Accuracy Score ===
+accuracy_score(y_test, y_pred)=0.69
+
+=== Top Features for the Logistic Regression model ===
+
+Top 10 Words for Class: Romance
+        Word  Coefficient
+        love     2.729625
+relationship     1.218872
+        meet     0.957013
+       tessa     0.766356
+    marriage     0.755339
+   christian     0.715151
+       woman     0.672288
+       henry     0.649901
+      hardin     0.642257
+      affair     0.633477
+------------------------------
+Top 10 Words for Class: Horror
+     Word  Coefficient
+    night     1.155805
+   horror     1.113436
+    demon     1.094571
+     dark     1.043463
+    house     1.039517
+nightmare     0.995665
+     town     0.800886
+    begin     0.793721
+    sarah     0.793396
+     evil     0.778618
+------------------------------
+Top 10 Words for Class: Comedy
+     Word  Coefficient
+   friend     0.929372
+   school     0.865538
+     kate     0.821188
+   senior     0.750752
+      kid     0.733034
+christmas     0.724800
+     high     0.717549
+     star     0.705377
+      max     0.693137
+     make     0.684191
+------------------------------
+Top 10 Words for Class: Action
+     Word  Coefficient
+  mission     1.188035
+ criminal     1.078845
+     team     1.059403
+dangerous     0.950787
+ assassin     0.947482
+     gang     0.938239
+mercenary     0.877500
+      man     0.848548
+   battle     0.825974
+     kill     0.820816
+------------------------------

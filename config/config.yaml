@@ -8,14 +8,17 @@ paths:
     artifacts: 'artifacts'
 
 models:
-    naive_bayes: True
+    naive_bayes: False
     logistic_regression: False
-    lstm: False
-    transformer: False
+    lstm: True
+    transformer: True
 
 model_parameters:
     test_split: 0.2
     random_state: 42
+    MAX_SEQUENCE_LENGTH: 50
+    NUM_CLASSES: 4
+    BATCH_SIZE: 64
 
 files:
     data_file: "artifacts/data/processed_data.pkl"

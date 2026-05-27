@@ -1,7 +1,7 @@
 ====== Model Evaluation: Naive Bayes ======
 
 === Model Score ===
-model.score(X_test_dtm, y_test)=0.72
+model.score(X_test, y_test)=0.72
 
 
 === Classification Report ===

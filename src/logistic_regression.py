@@ -10,26 +10,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 from sklearn.metrics import ConfusionMatrixDisplay
 from .utils import get_top_features
 
-def train_bayes(df: pd.DataFrame, cfg: dict):
+def train_log_reg(df: pd.DataFrame, cfg: dict):
     '''train and save a naive bayes model'''
 
     params = cfg.get("model_parameters", {})
     paths = cfg.get("paths", {})
     # get model paths
-    nb_model_dir = paths['models']
-    nb_metrics_dir = paths['metrics'] + "/naive_bayes"
-    model_file = nb_model_dir + "/naive_bayes.joblib"
+    lr_model_dir = paths['models']
+    lr_metrics_dir = paths['metrics'] + "/logistic_regression"
+    model_file = lr_model_dir + "/logistic.joblib"
 
     # make directories
     os.makedirs(paths['models'], exist_ok=True)
     os.makedirs(paths['metrics'], exist_ok=True)
-    os.makedirs(nb_model_dir, exist_ok=True)
-    os.makedirs(nb_metrics_dir, exist_ok=True)
+    os.makedirs(lr_model_dir, exist_ok=True)
+    os.makedirs(lr_metrics_dir, exist_ok=True)
 
 
     X = df['Final_Summary'] # create X
@@ -50,23 +50,45 @@ def train_bayes(df: pd.DataFrame, cfg: dict):
     
     # train model if it doesn't exist already
     if not os.path.exists(model_file):
-        model = MultinomialNB() #define multinomial bayes model
+        # set up logistic regression model
+        model = LogisticRegression(max_iter=1000)
         model.fit(X_train_dtm, y_train) #fit on train document term matrix and y_train
 
         joblib.dump(model, model_file)
-        joblib.dump(vectorizer, nb_model_dir + 'tfidf_vectorizer.joblib')
+        joblib.dump(vectorizer, lr_model_dir + 'tfidf_vectorizer.joblib')
     else:
         # load existing model
         model = joblib.load(model_file)
 
     # evaluate the model
-    evaluate_bayes(model, X_test_dtm, y_test, paths, vectorizer)
+    evaluate_log_reg(model, X_test_dtm, y_test, paths, vectorizer)
 
 
 
-def evaluate_bayes(model, X_test, y_test, paths, vectorizer):
-    '''evaluates the naive bayes model'''
-    nb_metrics_dir = paths['metrics'] + "/naive_bayes"
+def get_logreg_features(vectorizer, model, file, n=10):
+    words = vectorizer.get_feature_names_out()
+    class_dict = {1: "Romance", 2: "Horror", 3: "Comedy", 4: "Action"}
+
+    # model.classes_ contains 4 labels
+    for i, class_name in enumerate(model.classes_):
+        # get coefficients for this specific class
+        coeffs = model.coef_[i]
+
+        #create a temp DataFrame for this class
+        df = pd.DataFrame({'Word': words, 'Coefficient': coeffs})
+
+        #sort by coefficient (Highest = Most Positive Impact)
+        top_features = df.sort_values(by='Coefficient', ascending=False).head(n)
+
+        print(f"Top 10 Words for Class: {class_dict[class_name]}", file=file)
+        print(top_features.to_string(index=False), file=file)
+        print("-" * 30, file=file)
+
+
+
+def evaluate_log_reg(model, X_test, y_test, paths, vectorizer):
+    '''evaluates the logistic regression model'''
+    lr_metrics_dir = paths['metrics'] + "/logistic_regression"
 
     preds = model.predict_proba(X_test) #predict on test set
 
@@ -74,11 +96,11 @@ def evaluate_bayes(model, X_test, y_test, paths, vectorizer):
 
     y_pred = model.predict(X_test)
 
-    evaluation_file = nb_metrics_dir + "/naive_bayes_evaulation.txt"
-    cm_file = nb_metrics_dir + "/naive_bayes_cm.jpg"
+    evaluation_file = lr_metrics_dir + "/logistic_regression_evaulation.txt"
+    cm_file = lr_metrics_dir + "/logistic_regression_cm.jpg"
 
     with open(evaluation_file, "w", encoding='utf-8') as f:
-        print("====== Model Evaluation: Naive Bayes ======\n", file=f)
+        print("====== Model Evaluation: Logistic Regression ======\n", file=f)
 
         print("=== Model Score ===", file=f)
         print(f'{model.score(X_test, y_test)=}', file=f)
@@ -92,13 +114,13 @@ def evaluate_bayes(model, X_test, y_test, paths, vectorizer):
         print("=== Accuracy Score ===", file=f)
         print(f'{accuracy_score(y_test, y_pred)=}', file=f) #get accuracy
 
-        print("\n=== Top Features for the Naive Bayes model ===\n", file=f)
-        get_top_features(vectorizer, model, f)
+        print("\n=== Top Features for the Logistic Regression model ===\n", file=f)
+        get_logreg_features(vectorizer, model, f)
 
     cm = confusion_matrix(y_test, y_pred)
 
     disp = (ConfusionMatrixDisplay(confusion_matrix=cm, 
                     display_labels=['romance', 'horror','comedy','action']))
-    disp.plot(cmap=plt.cm.Greens)
-    plt.title('Naive Bayes Confusion Matrix')
+    disp.plot(cmap=plt.cm.Purples)
+    plt.title('Logistic Regression Confusion Matrix')
     plt.savefig(cm_file)
