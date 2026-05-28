@@ -14,6 +14,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 from sklearn.metrics import ConfusionMatrixDisplay
 from .utils import get_top_features
+from wordcloud import WordCloud
 
 def train_log_reg(df: pd.DataFrame, cfg: dict):
     '''train and save a naive bayes model'''
@@ -69,6 +70,8 @@ def get_logreg_features(vectorizer, model, file, n=10):
     words = vectorizer.get_feature_names_out()
     class_dict = {1: "Romance", 2: "Horror", 3: "Comedy", 4: "Action"}
 
+    all_genres_words = {}
+
     # model.classes_ contains 4 labels
     for i, class_name in enumerate(model.classes_):
         # get coefficients for this specific class
@@ -80,9 +83,14 @@ def get_logreg_features(vectorizer, model, file, n=10):
         #sort by coefficient (Highest = Most Positive Impact)
         top_features = df.sort_values(by='Coefficient', ascending=False).head(n)
 
+        #put top words in dictionary
+        word_freq = dict(zip(top_features['Word'], top_features['Coefficient']))
+        all_genres_words[class_dict[class_name]] = word_freq
+
         print(f"Top 10 Words for Class: {class_dict[class_name]}", file=file)
         print(top_features.to_string(index=False), file=file)
         print("-" * 30, file=file)
+    return all_genres_words
 
 
 
@@ -98,6 +106,7 @@ def evaluate_log_reg(model, X_test, y_test, paths, vectorizer):
 
     evaluation_file = lr_metrics_dir + "/logistic_regression_evaulation.txt"
     cm_file = lr_metrics_dir + "/logistic_regression_cm.jpg"
+    wordcloud_file = lr_metrics_dir + "/logistic_regression_wordcloud.jpg"
 
     with open(evaluation_file, "w", encoding='utf-8') as f:
         print("====== Model Evaluation: Logistic Regression ======\n", file=f)
@@ -115,8 +124,10 @@ def evaluate_log_reg(model, X_test, y_test, paths, vectorizer):
         print(f'{accuracy_score(y_test, y_pred)=}', file=f) #get accuracy
 
         print("\n=== Top Features for the Logistic Regression model ===\n", file=f)
+        genre_word_frequencies = get_logreg_features(vectorizer, model, f)
         get_logreg_features(vectorizer, model, f)
-
+    
+    #confusion matrix
     cm = confusion_matrix(y_test, y_pred)
 
     disp = (ConfusionMatrixDisplay(confusion_matrix=cm, 
@@ -124,3 +135,22 @@ def evaluate_log_reg(model, X_test, y_test, paths, vectorizer):
     disp.plot(cmap=plt.cm.Purples)
     plt.title('Logistic Regression Confusion Matrix')
     plt.savefig(cm_file)
+
+    #wordcloud
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    axes = axes.flatten() #flatten 2D array to 1D
+
+    for idx, (genre, frequencies) in enumerate(genre_word_frequencies.items()):
+        #create wordcloud
+        wc = WordCloud(background_color='white', width=800, height=400, max_words=40)
+        # Generate using the coefficients as weights
+        wc.generate_from_frequencies(frequencies)
+        
+        #plot on subplots
+        axes[idx].imshow(wc, interpolation='bilinear')
+        axes[idx].set_title(f'Top Words for {genre}', fontsize=16)
+        axes[idx].axis('off')
+
+    plt.tight_layout()
+    plt.savefig(wordcloud_file, dpi=300)
+    plt.close()

@@ -12,6 +12,8 @@ import numpy as np
 from pathlib import Path
 from typing import Union
 from tensorflow.keras.layers import Embedding
+import pandas as pd
+import numpy 
 
 def load_config(path: Union[str, Path] = "config.yaml") -> dict:
     '''loads given config file'''
@@ -33,21 +35,101 @@ def load_config(path: Union[str, Path] = "config.yaml") -> dict:
         raise RuntimeError(f'''Unexpected error loading config
                             {path.resolve()}: {e}''') from e
 
-def get_top_features(vectorizer, model, file, n=10):
-    #get the actual word names from the vectorizer
+# def get_top_features(vectorizer, model, file, n=10):
+#     #get the actual word names from the vectorizer
+#     feature_names = vectorizer.get_feature_names_out()
+
+#     all_genres_words = {}
+#     #loop through 4 classes
+#     for i, class_label in enumerate(model.classes_):
+#         #sort the log-probabilities for the current class
+#         top_indices = np.argsort(model.feature_log_prob_[i])[-n:]
+
+#         #pull the corresponding words
+#         top_words = [feature_names[idx] for idx in top_indices]
+        
+
+#         print(f"Top words for Class {class_label}:", file=file)
+#         print(", ".join(top_words), file=file)
+#         print("-" * 30, file=file)
+
+
+def get_naive_bayes_features(vectorizer, model, file=None, n=10, use_ratio=True):
+    """
+    Generalized feature extraction for naive bayes model
+    """
     feature_names = vectorizer.get_feature_names_out()
-
-    #loop through 4 classes
+    feature_log_probs = model.feature_log_prob_
+    feature_dict = {}
+    
     for i, class_label in enumerate(model.classes_):
-        #sort the log-probabilities for the current class
-        top_indices = np.argsort(model.feature_log_prob_[i])[-n:]
+        if use_ratio and len(model.classes_) > 1:
+            #calculate the average log probability of all other classes
+            other_classes = [j for j in range(len(model.classes_)) if j != i]
+            mean_other_log_prob = np.mean(feature_log_probs[other_classes], axis=0)
+            
+            #ratio shows how unique the word is to this class specifically
+            scores = feature_log_probs[i] - mean_other_log_prob
+        else:
+            #fallback to raw log probabilities
+            scores = feature_log_probs[i]
+            
+        #get the indices of the top n scores
+        top_indices = np.argsort(scores)[-n:]
+        
+        #sort from highest impact down to lowest
+        top_words = [feature_names[idx] for idx in reversed(top_indices)]
+        top_scores = [scores[idx] for idx in reversed(top_indices)]
+        
+        #save to dictionary
+        feature_dict[class_label] = dict(zip(top_words, top_scores))
+        
+        #output to console
+        if file is not None:
+            print(f"Top Distinctive Words for Class {class_label}:", file=file)
+            print(", ".join(top_words), file=file)
+            print("-" * 30, file=file)
+            
+    return feature_dict
 
-        #pull the corresponding words
-        top_words = [feature_names[idx] for idx in top_indices]
+def get_top_lstm_features(model, vectorizer, file=None, n = 10):
+    embedding_weights = model.layers[1].get_weights()[0]
+    dense_weights = model.layers[-1].get_weights()[0]
+    
+    #class space by matrix multiplying
+    word_class_scores = np.dot(embedding_weights, dense_weights)
 
-        print(f"Top words for Class {class_label}:", file=file)
-        print(", ".join(top_words), file=file)
-        print("-" * 30, file=file)
+    if hasattr(vectorizer, 'word_index'):
+        vocab = vectorizer.word_index
+    else:
+        vocab = vectorizer.vocabulary_ #fallback
+
+    #invert the dictionary to map index to word
+    index_to_word = {idx: word for word, idx in vocab.items()}
+
+    feature_dict = {}
+
+    num_classes = dense_weights.shape[1]
+    for class_idx in range(num_classes):
+        class_scores = word_class_scores[:,class_idx]
+
+        df_list = []
+        for idx, score in enumerate(class_scores):
+            word = index_to_word.get(idx,None)
+            if word: #skip padding
+                df_list.append({'feature': word, 'coefficient': score})
+        #make into dataframe
+        class_df = pd.DataFrame(df_list)
+
+        top_features = class_df.sort_values(by='coefficient', ascending=False).head(n)
+
+        feature_dict[class_idx] = dict(zip(top_features['feature'], top_features['coefficient']))
+
+        print(f"Top {n} LSTM Features for Class {class_idx}:")
+        print(top_features.to_string(index=False))
+        print("-" * 30)
+
+    return feature_dict
 
 
 def get_embeddings_from_file(file_name):

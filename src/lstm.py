@@ -20,7 +20,8 @@ from tensorflow.keras.layers import Dense, SimpleRNN, LSTM, Input, Embedding, Sp
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import plot_model
-from .utils import make_save_emb_layer, get_embeddings
+from .utils import make_save_emb_layer, get_embeddings, get_top_lstm_features
+from wordcloud import WordCloud
 
 
 def get_model(params):
@@ -134,7 +135,7 @@ def train_lstm(df: pd.DataFrame, cfg: dict):
 
 
 
-def evaluate_lstm(model, X_test, y_test, paths, params):
+def evaluate_lstm(model, vectorizer, X_test, y_test, paths, params):
     '''evaluates the logistic regression model'''
     lstm_metrics_dir = paths['metrics'] + "/lstm"
 
@@ -146,6 +147,7 @@ def evaluate_lstm(model, X_test, y_test, paths, params):
     evaluation_file = lstm_metrics_dir + "/lstm_evaulation.txt"
     cm_file = lstm_metrics_dir + "/lstm_cm.jpg"
     arch_file = lstm_metrics_dir + "lstm_model_architecture.png"
+    wordcloud_file = lstm_metrics_dir + "/lstm_model_wordcloud.jpg"
 
     with open(evaluation_file, "w", encoding='utf-8') as f:
         print("====== Model Evaluation: LSTM ======\n", file=f)
@@ -161,6 +163,10 @@ def evaluate_lstm(model, X_test, y_test, paths, params):
         print("=== ROC-AUC (macro OvR) ===", file=f)
         print(f'{roc_auc_score(y_test, test_pred_proba, multi_class="ovr", average="macro"):.4f}', file=f)
 
+        print("=== Top Features ===", file=f)
+        top_lstm_features = get_top_lstm_features(model, vectorizer,f)
+        get_top_lstm_features(model, vectorizer,f)
+
     cm = confusion_matrix(y_test, test_pred_class)
 
     disp = (ConfusionMatrixDisplay(confusion_matrix=cm, 
@@ -168,6 +174,25 @@ def evaluate_lstm(model, X_test, y_test, paths, params):
     disp.plot(cmap=plt.cm.Blues)
     plt.title('LSTM Confusion Matrix')
     plt.savefig(cm_file)
+
+    #wordcloud
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    axes = axes.flatten() #flatten 2D array to 1D
+
+    for idx, (genre, frequencies) in enumerate(top_lstm_features.items()):
+        #create wordcloud
+        wc = WordCloud(background_color='white', width=800, height=400, max_words=40)
+        # Generate using the coefficients as weights
+        wc.generate_from_frequencies(frequencies)
+        
+        #plot on subplots
+        axes[idx].imshow(wc, interpolation='bilinear')
+        axes[idx].set_title(f'Top Words for {genre}', fontsize=16)
+        axes[idx].axis('off')
+
+    plt.tight_layout()
+    plt.savefig(wordcloud_file, dpi=300)
+    plt.close()
 
     # plot & save model architecture
     plot_model(

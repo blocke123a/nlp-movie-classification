@@ -9,9 +9,9 @@ paths:
 
 models:
     naive_bayes: False
-    logistic_regression: False
-    lstm: True
-    transformer: True
+    logistic_regression: True
+    lstm: False
+    transformer: False
 
 model_parameters:
     test_split: 0.2

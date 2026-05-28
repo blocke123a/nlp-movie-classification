@@ -13,7 +13,8 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 from sklearn.metrics import ConfusionMatrixDisplay
-from .utils import get_top_features
+from .utils import get_naive_bayes_features
+from wordcloud import WordCloud
 
 def train_bayes(df: pd.DataFrame, cfg: dict):
     '''train and save a naive bayes model'''
@@ -76,6 +77,7 @@ def evaluate_bayes(model, X_test, y_test, paths, vectorizer):
 
     evaluation_file = nb_metrics_dir + "/naive_bayes_evaulation.txt"
     cm_file = nb_metrics_dir + "/naive_bayes_cm.jpg"
+    wordcloud_file = nb_metrics_dir + "/naive_bayes_wordcloud.jpg"
 
     with open(evaluation_file, "w", encoding='utf-8') as f:
         print("====== Model Evaluation: Naive Bayes ======\n", file=f)
@@ -93,7 +95,8 @@ def evaluate_bayes(model, X_test, y_test, paths, vectorizer):
         print(f'{accuracy_score(y_test, y_pred)=}', file=f) #get accuracy
 
         print("\n=== Top Features for the Naive Bayes model ===\n", file=f)
-        get_top_features(vectorizer, model, f)
+        genre_word_frequencies = get_naive_bayes_features(vectorizer, model, f)
+        get_naive_bayes_features(vectorizer, model, f)
 
     cm = confusion_matrix(y_test, y_pred)
 
@@ -102,3 +105,22 @@ def evaluate_bayes(model, X_test, y_test, paths, vectorizer):
     disp.plot(cmap=plt.cm.Greens)
     plt.title('Naive Bayes Confusion Matrix')
     plt.savefig(cm_file)
+
+    #wordcloud
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    axes = axes.flatten() #flatten 2D array to 1D
+
+    for idx, (genre, frequencies) in enumerate(genre_word_frequencies.items()):
+        #create wordcloud
+        wc = WordCloud(background_color='white', width=800, height=400, max_words=40)
+        # Generate using the coefficients as weights
+        wc.generate_from_frequencies(frequencies)
+        
+        #plot on subplots
+        axes[idx].imshow(wc, interpolation='bilinear')
+        axes[idx].set_title(f'Top Words for {genre}', fontsize=16)
+        axes[idx].axis('off')
+
+    plt.tight_layout()
+    plt.savefig(wordcloud_file, dpi=300)
+    plt.close()
