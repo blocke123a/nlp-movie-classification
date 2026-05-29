@@ -131,6 +131,58 @@ def get_top_lstm_features(model, vectorizer, file=None, n = 10):
 
     return feature_dict
 
+def get_top_transformer_features(model, X_test, vectorizer, n=10):
+    '''
+    Gets top words for each class based on transformer attention weights
+    '''
+
+    #get attention layer
+    attn_layer = None
+    for layer in model.layers:
+        if 'attention' in layer.name.lower():
+            attn_layer = layer
+    if attn_layer is None:
+        raise ValueError("Could not find an attention layer in the model")
+    
+    #get embedding weights
+    embedding_layer = [l for l in model.layers if 'embed' in l.name.lower()][0]
+    dense_layer = model.layers[-1]
+
+    embed_weights = embedding_layer.get_weights()[0] if embedding_layer.get_weights() else model.layers[1].get_weights()[0]
+    dense_weights = dense_layer.get_weights()[0]
+
+    word_class_scores = np.dot(embed_weights, dense_weights) #get dot product
+
+    #format vocab matching
+    vocab = vectorizer.get_vocabulary() if hasattr(vectorizer, 'get_vocabulary') else list(vectorizer.word_index.keys())
+
+    #create feature dict
+    feature_dict = {}
+    genre_names = ['Romance', 'Horror','Comedy','Action']
+    for class_idx in range(dense_weights.shape[1]):
+        class_scores = word_class_scores[:, class_idx]
+        
+        df_list = []
+        for idx, score in enumerate(class_scores):
+            if idx < len(vocab):
+                word = vocab[idx]
+                if word not in ['', '[UNK]']:
+                    df_list.append({'feature': word, 'coefficient': score})
+                    
+        class_df = pd.DataFrame(df_list)
+        
+        #sort to find the highest positive directional weights
+        top_features = class_df.sort_values(by='coefficient', ascending=False).head(n)
+        
+        #map the structural index - numbers to genre names
+        genre_string = genre_names[class_idx]
+        
+        #convert to frequency dict format
+        feature_dict[genre_string] = dict(zip(top_features['feature'], top_features['coefficient']))
+        
+    return feature_dict
+
+
 
 def get_embeddings_from_file(file_name):
     '''gets embeddings from provided file'''

@@ -21,7 +21,8 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import plot_model
 from tensorflow.keras.layers import (MultiHeadAttention, LayerNormalization,
                                      GlobalAveragePooling1D, Add)
-from .utils import make_save_emb_layer, get_embeddings
+from .utils import make_save_emb_layer, get_embeddings, get_transformer_top_features
+from wordcloud import WordCloud
 
 
 class PositionalEncoding(tf.keras.layers.Layer):
@@ -184,7 +185,7 @@ def train_transformer(df: pd.DataFrame, cfg: dict):
 
 
 
-def evaluate_transformer(model, X_test, y_test, paths, params):
+def evaluate_transformer(model, vectorizer, X_test, y_test, paths, params):
     '''evaluates the naive bayes model'''
     trans_metrics_dir = paths['metrics'] + "/transformer"
 
@@ -196,6 +197,7 @@ def evaluate_transformer(model, X_test, y_test, paths, params):
     evaluation_file = trans_metrics_dir + "/transformer_evaulation.txt"
     cm_file = trans_metrics_dir + "/transformer_cm.jpg"
     arch_file = trans_metrics_dir + "transformer_model_architecture.png"
+    wordcloud_file = trans_metrics_dir + "/transformer_wordcloud.jpg"
 
     with open(evaluation_file, "w", encoding='utf-8') as f:
         print("====== Model Evaluation: Transformer ======\n", file=f)
@@ -210,6 +212,18 @@ def evaluate_transformer(model, X_test, y_test, paths, params):
 
         print("=== ROC-AUC (macro OvR) ===", file=f)
         print(f'{roc_auc_score(y_test, test_pred_proba, multi_class="ovr", average="macro"):.4f}', file=f)
+
+        print("\n=== Top Features for the Transformer model ===\n", file=f)
+        #get top features
+        genre_word_frequencies = get_transformer_top_features(model, vectorizer, n=40)
+        
+        for genre, frequencies in genre_word_frequencies.items():
+            print(f"Top Driving Words for {genre}:", file=f)
+            #get top 10 for summary
+            top_10 = list(frequencies.items())[:10]
+            for word, score in top_10:
+                print(f"  - {word}: {score:.6f}", file=f)
+            print("-" * 30, file=f)
 
     cm = confusion_matrix(y_test, test_pred_class)
 
@@ -226,6 +240,22 @@ def evaluate_transformer(model, X_test, y_test, paths, params):
         show_shapes=True,
         show_layer_names=True
     )
+
+    #wordcloud
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    axes = axes.flatten()
+
+    for idx, (genre, frequencies) in enumerate(genre_word_frequencies.items()):
+        wc = WordCloud(background_color='white', width=800, height=400, max_words=40)
+        wc.generate_from_frequencies(frequencies)
+        
+        axes[idx].imshow(wc, interpolation='bilinear')
+        axes[idx].set_title(f'Transformer: Top Words for {genre}', fontsize=16)
+        axes[idx].axis('off')
+
+    plt.tight_layout()
+    plt.savefig(wordcloud_file, dpi=300)
+    plt.close()
 
 
 def evaluate_transformer_training(hist_transformer, paths):
