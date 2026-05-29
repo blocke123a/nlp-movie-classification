@@ -12,7 +12,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile.app
+      dockerfile: app/Dockerfile.app
     ports:
       - "8501:8501"
     depends_on:

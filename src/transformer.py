@@ -21,7 +21,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import plot_model
 from tensorflow.keras.layers import (MultiHeadAttention, LayerNormalization,
                                      GlobalAveragePooling1D, Add)
-from .utils import make_save_emb_layer, get_embeddings, get_transformer_top_features
+from .utils import make_save_emb_layer, get_embeddings, get_top_transformer_features
 from wordcloud import WordCloud
 
 
@@ -48,14 +48,14 @@ class PositionalEncoding(tf.keras.layers.Layer):
         return cfg
 
 
-def make_save_emb_layer(word_index, embeddings_index, layer_file_name):
+"""def make_save_emb_layer(word_index, embeddings_index, layer_file_name):
     '''make and save the embedding layer'''
     embedding_matrix, unknown = get_embedding_matrix(word_index, embeddings_index)
     embedding_layer = Embedding(embedding_matrix.shape[0], embedding_matrix.shape[1],
                                 weights=[embedding_matrix], trainable=False)
     with open(layer_file_name, 'wb') as f:
         pickle.dump(embedding_layer, f, -1)
-    return unknown
+    return unknown"""
 
 
 def transformer_encoder_block(x, num_heads, ff_dim, dropout_rate=0.1):
@@ -72,7 +72,7 @@ def transformer_encoder_block(x, num_heads, ff_dim, dropout_rate=0.1):
     return x
 
 
-def get_transformer_model(params, num_classes=4, num_heads=4, ff_dim=128, num_transformer_blocks=2, dropout_rate=0.1, embeddings_dim=300):
+def get_transformer_model(embedding_layer, params, num_classes=4, num_heads=4, ff_dim=128, num_transformer_blocks=2, dropout_rate=0.1, embeddings_dim=300):
     input_layer = Input(shape=(params["MAX_SEQUENCE_LENGTH"],))
 
     x = embedding_layer(input_layer) # (batch, seq_len, 300)
@@ -107,7 +107,7 @@ def train_transformer(df: pd.DataFrame, cfg: dict):
     nb_metrics_dir = paths['metrics'] + "/transformer"
     model_file = nb_model_dir + "/transformer_genre_model.keras"
     weights_file = nb_model_dir + "/best_transformer_model.weights.h5"
-    tokenizer_file = nb_model_dir + "keras_tokenizer.pkl"
+    tokenizer_file = nb_model_dir + "/keras_tokenizer.pkl"
     layer_file = nb_model_dir + "embedding_layer.pkl"
 
     # make directories
@@ -158,7 +158,7 @@ def train_transformer(df: pd.DataFrame, cfg: dict):
         with open(layer_file, 'rb') as f: 
             embedding_layer = pickle.load(f)
 
-        transformer_model = get_transformer_model(params)
+        transformer_model = get_transformer_model(embedding_layer, params)
 
         t_early_stopping = EarlyStopping(patience=12, restore_best_weights=True)
         t_model_checkpoint = ModelCheckpoint(weights_file,
@@ -181,7 +181,7 @@ def train_transformer(df: pd.DataFrame, cfg: dict):
         model = model = load_model(model_file, custom_objects={'PositionalEncoding': PositionalEncoding})
 
     # evaluate the model
-    evaluate_transformer(model, X_test_lstm, y_test, paths, params)
+    evaluate_transformer(model, tokenizer, X_test_lstm, y_test, paths, params)
 
 
 
@@ -196,7 +196,7 @@ def evaluate_transformer(model, vectorizer, X_test, y_test, paths, params):
 
     evaluation_file = trans_metrics_dir + "/transformer_evaulation.txt"
     cm_file = trans_metrics_dir + "/transformer_cm.jpg"
-    arch_file = trans_metrics_dir + "transformer_model_architecture.png"
+    arch_file = trans_metrics_dir + "/transformer_model_architecture.png"
     wordcloud_file = trans_metrics_dir + "/transformer_wordcloud.jpg"
 
     with open(evaluation_file, "w", encoding='utf-8') as f:
@@ -215,7 +215,7 @@ def evaluate_transformer(model, vectorizer, X_test, y_test, paths, params):
 
         print("\n=== Top Features for the Transformer model ===\n", file=f)
         #get top features
-        genre_word_frequencies = get_transformer_top_features(model, vectorizer, n=40)
+        genre_word_frequencies = get_top_transformer_features(model, X_test, vectorizer, n=40)
         
         for genre, frequencies in genre_word_frequencies.items():
             print(f"Top Driving Words for {genre}:", file=f)
@@ -246,7 +246,25 @@ def evaluate_transformer(model, vectorizer, X_test, y_test, paths, params):
     axes = axes.flatten()
 
     for idx, (genre, frequencies) in enumerate(genre_word_frequencies.items()):
-        wc = WordCloud(background_color='white', width=800, height=400, max_words=40)
+        #define a mapping of genres to specific color schemes
+        color_map_selection = {
+            'Romance': 'RdPu',
+            'Horror': 'magma',       # Dark purple/orange vibe
+            'Comedy': 'spring',      # Bright and energetic
+            'Action': 'viridis'      # Bold contrast
+        }
+        
+        #fallback
+        current_cmap = color_map_selection.get(genre, 'viridis')
+
+        #pass the colormap to WordCloud
+        wc = WordCloud(
+            background_color='white', 
+            width=800, 
+            height=400, 
+            max_words=40,
+            colormap=current_cmap
+        )
         wc.generate_from_frequencies(frequencies)
         
         axes[idx].imshow(wc, interpolation='bilinear')

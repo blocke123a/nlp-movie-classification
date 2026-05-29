@@ -1,0 +1,11 @@
+venv/ 
+app/venv/ 
+__pycache__/ 
+*.pyc 
+.git/ 
+*.vec 
+*.vec.zip 
+*.zip 
+.ipynb_checkpoints/ 
+*.ipynb 
+data/ 

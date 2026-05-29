@@ -1,0 +1,33 @@
+====== Model Evaluation: LSTM ======
+
+=== Classification Report ===
+              precision    recall  f1-score   support
+
+     romance       0.77      0.67      0.71        45
+      horror       0.74      0.90      0.81        60
+      comedy       0.59      0.40      0.48        40
+      action       0.79      0.87      0.83        55
+
+    accuracy                           0.74       200
+   macro avg       0.72      0.71      0.71       200
+weighted avg       0.73      0.74      0.73       200
+
+
+
+=== Accuracy Score ===
+0.7400
+=== ROC-AUC (macro OvR) ===
+0.9084
+=== Top Features ===
+Top Distinctive Words for Romance:
+love, life, young, family, year, world, meet, girl, relationship, story
+------------------------------
+Top Distinctive Words for Horror:
+life, young, friend, murder, house, camp, mysterious, girl, find, death
+------------------------------
+Top Distinctive Words for Comedy:
+friend, life, family, year, mother, new, meet, peter, young, story
+------------------------------
+Top Distinctive Words for Action:
+world, team, assassin, must, life, man, elite, find, power, take
+------------------------------

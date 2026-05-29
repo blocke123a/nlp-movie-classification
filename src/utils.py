@@ -55,131 +55,121 @@ def load_config(path: Union[str, Path] = "config.yaml") -> dict:
 
 
 def get_naive_bayes_features(vectorizer, model, file=None, n=10, use_ratio=True):
-    """
-    Generalized feature extraction for naive bayes model
-    """
     feature_names = vectorizer.get_feature_names_out()
     feature_log_probs = model.feature_log_prob_
     feature_dict = {}
-    
+
+    # map numeric class labels to genre names
+    genre_names = {1: 'Romance', 2: 'Horror', 3: 'Comedy', 4: 'Action'}
+
     for i, class_label in enumerate(model.classes_):
+        genre = genre_names.get(class_label, str(class_label))  # fallback to str if unexpected
+
         if use_ratio and len(model.classes_) > 1:
-            #calculate the average log probability of all other classes
             other_classes = [j for j in range(len(model.classes_)) if j != i]
             mean_other_log_prob = np.mean(feature_log_probs[other_classes], axis=0)
-            
-            #ratio shows how unique the word is to this class specifically
             scores = feature_log_probs[i] - mean_other_log_prob
         else:
-            #fallback to raw log probabilities
             scores = feature_log_probs[i]
-            
-        #get the indices of the top n scores
+
         top_indices = np.argsort(scores)[-n:]
-        
-        #sort from highest impact down to lowest
         top_words = [feature_names[idx] for idx in reversed(top_indices)]
         top_scores = [scores[idx] for idx in reversed(top_indices)]
-        
-        #save to dictionary
-        feature_dict[class_label] = dict(zip(top_words, top_scores))
-        
-        #output to console
+
+        # use genre name as key instead of raw class label
+        feature_dict[genre] = dict(zip(top_words, top_scores))
+
         if file is not None:
-            print(f"Top Distinctive Words for Class {class_label}:", file=file)
+            print(f"Top Distinctive Words for {genre}:", file=file)
             print(", ".join(top_words), file=file)
             print("-" * 30, file=file)
-            
+
     return feature_dict
 
-def get_top_lstm_features(model, vectorizer, file=None, n = 10):
-    embedding_weights = model.layers[1].get_weights()[0]
-    dense_weights = model.layers[-1].get_weights()[0]
-    
-    #class space by matrix multiplying
-    word_class_scores = np.dot(embedding_weights, dense_weights)
+def get_top_lstm_features(model, X_test, vectorizer, file=None, n=10):
+    genre_names = ['Romance', 'Horror', 'Comedy', 'Action']
 
     if hasattr(vectorizer, 'word_index'):
-        vocab = vectorizer.word_index
+        index_to_word = {idx: word for word, idx in vectorizer.word_index.items()}
     else:
-        vocab = vectorizer.vocabulary_ #fallback
+        vocab = vectorizer.get_vocabulary()
+        index_to_word = {idx: word for idx, word in enumerate(vocab)
+                         if word not in ('', '[UNK]')}
 
-    #invert the dictionary to map index to word
-    index_to_word = {idx: word for word, idx in vocab.items()}
-
+    pred_proba = model.predict(X_test, verbose=0)
     feature_dict = {}
 
-    num_classes = dense_weights.shape[1]
-    for class_idx in range(num_classes):
-        class_scores = word_class_scores[:,class_idx]
+    for class_idx, genre in enumerate(genre_names):
+        class_confidences = pred_proba[:, class_idx]
+        top_sample_indices = np.argsort(class_confidences)[-50:]
 
-        df_list = []
-        for idx, score in enumerate(class_scores):
-            word = index_to_word.get(idx,None)
-            if word: #skip padding
-                df_list.append({'feature': word, 'coefficient': score})
-        #make into dataframe
-        class_df = pd.DataFrame(df_list)
+        word_scores = {}
+        for sample_idx in top_sample_indices:
+            confidence = class_confidences[sample_idx]
+            token_ids = X_test[sample_idx]
+            for token_id in token_ids:
+                if token_id == 0:
+                    continue
+                word = index_to_word.get(int(token_id))
+                if word:
+                    word_scores[word] = word_scores.get(word, 0) + float(confidence)
 
-        top_features = class_df.sort_values(by='coefficient', ascending=False).head(n)
+        top_words = sorted(word_scores.items(), key=lambda x: x[1], reverse=True)[:n]
 
-        feature_dict[class_idx] = dict(zip(top_features['feature'], top_features['coefficient']))
+        # use genre name as key instead of class_idx
+        feature_dict[genre] = dict(top_words)
 
-        print(f"Top {n} LSTM Features for Class {class_idx}:")
-        print(top_features.to_string(index=False))
-        print("-" * 30)
+        if file is not None:
+            print(f"Top Distinctive Words for {genre}:", file=file)
+            print(", ".join([w for w, _ in top_words]), file=file)
+            print("-" * 30, file=file)
 
     return feature_dict
 
 def get_top_transformer_features(model, X_test, vectorizer, n=10):
     '''
-    Gets top words for each class based on transformer attention weights
+    Gets top words for each class based on which test samples the
+    transformer is most confident about, then finds frequent words in those.
     '''
+    genre_names = ['Romance', 'Horror', 'Comedy', 'Action']
 
-    #get attention layer
-    attn_layer = None
-    for layer in model.layers:
-        if 'attention' in layer.name.lower():
-            attn_layer = layer
-    if attn_layer is None:
-        raise ValueError("Could not find an attention layer in the model")
-    
-    #get embedding weights
-    embedding_layer = [l for l in model.layers if 'embed' in l.name.lower()][0]
-    dense_layer = model.layers[-1]
+    # invert vocab to map index -> word
+    if hasattr(vectorizer, 'word_index'):
+        index_to_word = {idx: word for word, idx in vectorizer.word_index.items()}
+    else:
+        vocab = vectorizer.get_vocabulary()
+        index_to_word = {idx: word for idx, word in enumerate(vocab)
+                         if word not in ('', '[UNK]')}
 
-    embed_weights = embedding_layer.get_weights()[0] if embedding_layer.get_weights() else model.layers[1].get_weights()[0]
-    dense_weights = dense_layer.get_weights()[0]
+    # get predicted probabilities for all test samples
+    pred_proba = model.predict(X_test, verbose=0)  # (n_samples, 4)
 
-    word_class_scores = np.dot(embed_weights, dense_weights) #get dot product
-
-    #format vocab matching
-    vocab = vectorizer.get_vocabulary() if hasattr(vectorizer, 'get_vocabulary') else list(vectorizer.word_index.keys())
-
-    #create feature dict
     feature_dict = {}
-    genre_names = ['Romance', 'Horror','Comedy','Action']
-    for class_idx in range(dense_weights.shape[1]):
-        class_scores = word_class_scores[:, class_idx]
-        
-        df_list = []
-        for idx, score in enumerate(class_scores):
-            if idx < len(vocab):
-                word = vocab[idx]
-                if word not in ['', '[UNK]']:
-                    df_list.append({'feature': word, 'coefficient': score})
-                    
-        class_df = pd.DataFrame(df_list)
-        
-        #sort to find the highest positive directional weights
-        top_features = class_df.sort_values(by='coefficient', ascending=False).head(n)
-        
-        #map the structural index - numbers to genre names
-        genre_string = genre_names[class_idx]
-        
-        #convert to frequency dict format
-        feature_dict[genre_string] = dict(zip(top_features['feature'], top_features['coefficient']))
-        
+
+    for class_idx, genre in enumerate(genre_names):
+        # get confidence scores for this class across all samples
+        class_confidences = pred_proba[:, class_idx]
+
+        # take the top n most confident samples for this class
+        top_sample_indices = np.argsort(class_confidences)[-50:]
+
+        # count word frequencies across those samples
+        word_scores = {}
+        for sample_idx in top_sample_indices:
+            confidence = class_confidences[sample_idx]
+            token_ids = X_test[sample_idx]
+            for token_id in token_ids:
+                if token_id == 0:
+                    continue  # skip padding
+                word = index_to_word.get(int(token_id))
+                if word:
+                    # weight by model confidence so high-confidence samples count more
+                    word_scores[word] = word_scores.get(word, 0) + float(confidence)
+
+        # sort and take top n
+        top_words = sorted(word_scores.items(), key=lambda x: x[1], reverse=True)[:n]
+        feature_dict[genre] = dict(top_words)
+
     return feature_dict
 
 

@@ -8,10 +8,10 @@ paths:
     artifacts: 'artifacts'
 
 models:
-    naive_bayes: False
+    naive_bayes: True
     logistic_regression: True
-    lstm: False
-    transformer: False
+    lstm: True
+    transformer: True
 
 model_parameters:
     test_split: 0.2
@@ -22,3 +22,5 @@ model_parameters:
 
 files:
     data_file: "artifacts/data/processed_data.pkl"
+
+summary : False

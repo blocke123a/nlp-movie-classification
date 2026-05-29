@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import re
 import string
 import spacy
@@ -67,26 +68,25 @@ class PositionalEncoding(tf.keras.layers.Layer):
         cfg.update({'max_len': self.max_len, 'd_model': self.d_model})
         return cfg
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # repo root
+MODELS_DIR = os.path.join(BASE_DIR, 'artifacts', 'models')
+
 def load_models():
-    """
-    Load all four models and preprocessors.
-    Update the file paths below to match where your saved files live.
-    """
-    # from your_custom_layers import PositionalEncoding  # uncomment when ready
-    with open('../artifacts/models/keras_tokenizer.pkl', 'rb') as f:
+    models = {
+        'naive_bayes': load(os.path.join(MODELS_DIR, 'naive_bayes.joblib')),
+        'logistic': load(os.path.join(MODELS_DIR, 'logistic.joblib')),
+        'lstm': load_model(os.path.join(MODELS_DIR, 'lstm_genre_model.keras')),
+        'transformer': load_model(os.path.join(MODELS_DIR, 'transformer_genre_model.keras'),
+                                  custom_objects={'PositionalEncoding': PositionalEncoding})
+    }
+    with open(os.path.join(MODELS_DIR, 'keras_tokenizer.pkl'), 'rb') as f:
         tokenizer = pickle.load(f)
 
-    models = {
-        'naive_bayes': load('../artifacts/models/naive_bayes.joblib'),
-        'logistic': load('../artifacts/models/logistic.joblib'),
-        'lstm': load_model('../artifacts/models/lstm_genre_model.keras'),
-        'transformer': load_model('../artifacts/models/transformer_genre_model.keras', custom_objects={'PositionalEncoding': PositionalEncoding})
-    }
     preprocessors = {
-        'vectorizer':  load('../artifacts/models/tfidf_vectorizer.joblib'),
-        'tokenizer':   tokenizer,
+        'vectorizer': load(os.path.join(MODELS_DIR, 'tfidf_vectorizer.joblib')),
+        'tokenizer': tokenizer,
         'max_seq_len': 50,
-}
+    }
     return models, preprocessors
 
 

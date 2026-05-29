@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY app/requirements_streamlit.txt .
 RUN pip install --no-cache-dir -r requirements_streamlit.txt
 RUN pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
+RUN python -m nltk.downloader stopwords punkt_tab wordnet
 
 COPY artifacts/ artifacts/
 COPY app/ app/
