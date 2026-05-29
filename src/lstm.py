@@ -178,11 +178,27 @@ def evaluate_lstm(model, vectorizer, X_test, y_test, paths, params):
     #wordcloud
     fig, axes = plt.subplots(2, 2, figsize=(15, 10))
     axes = axes.flatten() #flatten 2D array to 1D
-
+    
     for idx, (genre, frequencies) in enumerate(top_lstm_features.items()):
-        #create wordcloud
-        wc = WordCloud(background_color='white', width=800, height=400, max_words=40)
-        # Generate using the coefficients as weights
+    #define a mapping of genres to specific color schemes
+        color_map_selection = {
+            'Romance': 'Reds',
+            'Horror': 'magma',       # Dark purple/orange vibe
+            'Comedy': 'spring',      # Bright and energetic
+            'Action': 'viridis'      # Bold contrast
+        }
+        
+        #fallback
+        current_cmap = color_map_selection.get(genre, 'viridis')
+
+        #pass the colormap to WordCloud
+        wc = WordCloud(
+            background_color='white', 
+            width=800, 
+            height=400, 
+            max_words=40,
+            colormap=current_cmap
+        )
         wc.generate_from_frequencies(frequencies)
         
         #plot on subplots

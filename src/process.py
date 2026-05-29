@@ -113,8 +113,9 @@ def process_data(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     df['Final_Summary'] = df['Tokenized_Summary'].apply(remove_numbers_spacy)
 
     # create a summary using spacy
-    df['Summary'] = (df['description']
-                     .apply(lambda x: spacy_summarizer(x, limit=2)))
+    if cfg.get("summary", True):
+        df['Summary'] = (df['description']
+                            .apply(lambda x: spacy_summarizer(x, limit=2)))
     
     # save data to pickle file
     files = cfg.get("files", {})

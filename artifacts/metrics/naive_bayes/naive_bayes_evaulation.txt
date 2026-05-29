@@ -23,15 +23,27 @@ accuracy_score(y_test, y_pred)=0.72
 
 === Top Features for the Naive Bayes model ===
 
-Top words for Class 1:
-father, mother, story, year, meet, young, relationship, woman, life, love
+Top Distinctive Words for Class 1:
+love, tessa, hardin, relationship, christian, marriage, sexual, peyton, passionate, noah
 ------------------------------
-Top words for Class 2:
-begin, woman, home, town, friend, young, girl, night, house, family
+Top Distinctive Words for Class 2:
+horror, demon, nightmare, dark, sarah, demonic, supernatural, terrifying, evil, wood
 ------------------------------
-Top words for Class 3:
-high, christmas, mother, new, make, year, school, family, friend, life
+Top Distinctive Words for Class 3:
+ted, kate, senior, max, rick, sid, marcus, christmas, roy, kid
 ------------------------------
-Top words for Class 4:
-kill, assassin, soldier, criminal, son, life, mission, man, team, world
+Top Distinctive Words for Class 4:
+mission, mercenary, assassin, criminal, soldier, dangerous, battle, gang, team, agent
+------------------------------
+Top Distinctive Words for Class 1:
+love, tessa, hardin, relationship, christian, marriage, sexual, peyton, passionate, noah
+------------------------------
+Top Distinctive Words for Class 2:
+horror, demon, nightmare, dark, sarah, demonic, supernatural, terrifying, evil, wood
+------------------------------
+Top Distinctive Words for Class 3:
+ted, kate, senior, max, rick, sid, marcus, christmas, roy, kid
+------------------------------
+Top Distinctive Words for Class 4:
+mission, mercenary, assassin, criminal, soldier, dangerous, battle, gang, team, agent
 ------------------------------

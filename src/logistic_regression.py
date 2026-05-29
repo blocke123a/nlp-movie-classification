@@ -13,7 +13,7 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 from sklearn.metrics import ConfusionMatrixDisplay
-from .utils import get_top_features
+#from .utils import get_top_features
 from wordcloud import WordCloud
 
 def train_log_reg(df: pd.DataFrame, cfg: dict):
@@ -141,9 +141,25 @@ def evaluate_log_reg(model, X_test, y_test, paths, vectorizer):
     axes = axes.flatten() #flatten 2D array to 1D
 
     for idx, (genre, frequencies) in enumerate(genre_word_frequencies.items()):
-        #create wordcloud
-        wc = WordCloud(background_color='white', width=800, height=400, max_words=40)
-        # Generate using the coefficients as weights
+    #define a mapping of genres to specific color schemes
+        color_map_selection = {
+            'Romance': 'Reds',
+            'Horror': 'magma',       # Dark purple/orange vibe
+            'Comedy': 'spring',      # Bright and energetic
+            'Action': 'viridis'      # Bold contrast
+        }
+        
+        #fallback
+        current_cmap = color_map_selection.get(genre, 'viridis')
+
+        #pass the colormap to WordCloud
+        wc = WordCloud(
+            background_color='white', 
+            width=800, 
+            height=400, 
+            max_words=40,
+            colormap=current_cmap
+        )
         wc.generate_from_frequencies(frequencies)
         
         #plot on subplots
