@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile.pipeline
+    volumes:
+      - ./artifacts:/app/artifacts  # so saved models persist to your local machine
+    command: python main.py
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    ports:
+      - "8501:8501"
+    depends_on:
+      - pipeline  # ensures pipeline runs before app starts

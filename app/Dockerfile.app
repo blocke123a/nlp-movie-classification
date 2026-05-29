@@ -2,19 +2,14 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# install system deps spacy needs
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# copy requirements first so Docker can cache this layer
 COPY app/requirements_streamlit.txt .
 RUN pip install --no-cache-dir -r requirements_streamlit.txt
-
-# download spacy model
 RUN pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
 
-# copy model artifacts and app code
 COPY artifacts/ artifacts/
 COPY app/ app/
 
