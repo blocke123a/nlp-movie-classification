@@ -22,26 +22,26 @@ weighted avg       0.72      0.72      0.72       200
 === Top Features for the Transformer model ===
 
 Top Driving Words for Romance:
-  - love: 22.197333
+  - love: 22.197332
   - family: 13.405939
   - friend: 13.317151
   - life: 12.765489
   - meet: 10.748704
-  - year: 10.239214
+  - year: 10.239213
   - young: 9.810748
   - story: 8.649889
-  - new: 8.536255
-  - mother: 7.925080
+  - new: 8.536254
+  - mother: 7.925079
 ------------------------------
 Top Driving Words for Horror:
-  - young: 19.564880
+  - young: 19.564879
   - life: 15.616177
   - house: 14.429321
   - woman: 14.299235
   - murder: 14.066452
   - find: 14.065094
-  - friend: 13.957192
-  - death: 12.173562
+  - friend: 13.957193
+  - death: 12.173563
   - mother: 11.562544
   - girl: 10.763657
 ------------------------------
@@ -50,22 +50,22 @@ Top Driving Words for Comedy:
   - family: 9.937744
   - year: 9.418261
   - friend: 9.142419
-  - new: 8.150819
+  - new: 8.150820
   - mother: 7.473623
   - love: 7.095243
-  - go: 6.922034
-  - young: 6.270625
-  - woman: 6.155950
+  - go: 6.922035
+  - young: 6.270624
+  - woman: 6.155951
 ------------------------------
 Top Driving Words for Action:
   - world: 22.117520
   - team: 16.000914
-  - life: 14.545711
+  - life: 14.545712
   - must: 11.900409
   - assassin: 11.801454
   - force: 10.076699
   - story: 10.045453
-  - new: 9.915055
-  - friend: 9.819232
+  - new: 9.915056
+  - friend: 9.819233
   - power: 9.749952
 ------------------------------
