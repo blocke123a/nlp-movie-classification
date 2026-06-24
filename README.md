@@ -84,8 +84,4 @@ Copy the URL that appears in terminal or open browser to http://localhost:8501 t
 - Enter a movie description of choice (real or fake) into the given textbox and hit command-return
 - Select the models that you want to use to predict the genre 
 - Click "predict genre" to see cleaned text and genre prediction probabilities per model
-
-## Authors
-
-### Arielle Weinstein, Aru Fatehpuria, Blake Wood, Jill Cusick, and Pippa Hodgkins
  
